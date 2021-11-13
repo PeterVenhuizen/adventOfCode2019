@@ -1,45 +1,70 @@
 import java.io.*;
-import java.util.Scanner;
+import java.util.*;
+import java.util.function.IntUnaryOperator;
 
-public class FuelCounterUpper {
+class Recursive<I> {
+    public I func;
+}
 
-    // I don't need to round down, because integer division in Java does
-    // this automatically for me
-    public static int calcFuelRequirement(int mass) {
-        return mass / 3 - 2;
-    }
+class FuelCounterUpper {
 
-    public static int calcTotalFuelRequirement(String inputFile) throws FileNotFoundException {
-        File f = new File(inputFile);
-        Scanner sc = new Scanner(f);
-        int total = 0;
+    public static ArrayList<Integer> readInputFile(String inputFile) throws FileNotFoundException {
+        Scanner sc = new Scanner(new File(inputFile));
+        ArrayList<Integer> moduleMasses = new ArrayList<Integer>();
         while (sc.hasNextLine()) {
-            int mass = Integer.parseInt(sc.nextLine());
-            total += calcFuelRequirement(mass);
+            moduleMasses.add(Integer.parseInt(sc.nextLine()));
         }
         sc.close();
+        return moduleMasses;
+    }
 
-        return total;
+    public static int calcFuel(ArrayList<Integer> moduleMasses, IntUnaryOperator op) {
+        return moduleMasses.stream()
+            .map(m -> op.applyAsInt(m))
+            .reduce(0, Integer::sum);
     }
 
     public static void main(String[] args) {
-        System.out.println(calcFuelRequirement(12) == 2);
-        System.out.println(calcFuelRequirement(14) == 2);
-        System.out.println(calcFuelRequirement(1969) == 654);
-        System.out.println(calcFuelRequirement(100756) == 33583);
 
-        if (args.length >= 1) {
+        try {
+            ArrayList<Integer> moduleMasses = readInputFile(args[0]);
 
-            try {
-                System.out.println(calcTotalFuelRequirement(args[0]));
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-                System.err.println("Could not find input");
-                System.exit(0);
-            }
+            // part 1
+            IntUnaryOperator calcBasicFuel = mass -> mass / 3 - 2;
 
-        } else {
-            System.err.println("Missing input file.");
+            // tests
+            System.out.println(calcBasicFuel.applyAsInt(12) == 2);
+            System.out.println(calcBasicFuel.applyAsInt(14) == 2);
+            System.out.println(calcBasicFuel.applyAsInt(1969) == 654);
+            System.out.println(calcBasicFuel.applyAsInt(100756) == 33583);
+
+            // solution
+            System.out.println(calcFuel(moduleMasses, calcBasicFuel));
+
+            // part 2
+            Recursive<IntUnaryOperator> calcFuelForFuel = new Recursive<>();
+            calcFuelForFuel.func = mass -> {
+                int fuel = calcBasicFuel.applyAsInt(mass);
+                if (fuel / 3 - 2 <= 0) {
+                    return fuel;
+                } else {
+                    return fuel + calcFuelForFuel.func.applyAsInt(fuel);
+                }
+            };
+
+            // tests
+            System.out.println(calcFuelForFuel.func.applyAsInt(14) == 2);
+            System.out.println(calcFuelForFuel.func.applyAsInt(1969) == 966);
+            System.out.println(calcFuelForFuel.func.applyAsInt(100756) == 50346);
+
+            // solution
+            System.out.println(calcFuel(moduleMasses, calcFuelForFuel.func));
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            System.err.println("Could not find input");
+            System.exit(0);
         }
+
     }
 }
