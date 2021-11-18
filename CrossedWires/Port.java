@@ -11,12 +11,16 @@ class Port {
         this.wireSaysHi = new ArrayList<String>();
     }
 
-    public Port tracePath(String wireName, Character wireDirection, int stepsLeftToTake) {
+    public Port tracePath(Wire wire, Character wireDirection, int stepsLeftToTake) {
 
-        this.wireSaysHi.add(wireName);
-        
+        // make the wire say its name
+        this.wireSaysHi.add(wire.getName());
         if (this.checkIfBothWiresHaveCrossedHere()) {
             this.imACrossing();
+            this.getNumberOfStepsTheWiresTook(
+                String.format("%d-%d", this.x, this.y),
+                wire
+            );
         }
 
         boolean theWireGoesOn = stepsLeftToTake > 0;
@@ -26,15 +30,18 @@ class Port {
             int y = calcNextY(this.y, wireDirection);
             String xAndY = String.format("%d-%d", x, y);
 
+            wire.addStep();
+
             Port neighbourPort;
             if (CrossedWires.ALL_PORTS.get(xAndY) instanceof Port)
                 neighbourPort = CrossedWires.ALL_PORTS.get(xAndY);
             else {
                 neighbourPort = new Port(x, y);
                 CrossedWires.ALL_PORTS.put(xAndY, neighbourPort);
+                CrossedWires.STEPS_TO_PORT.put(xAndY, wire.getSteps());
             }
 
-            return neighbourPort.tracePath(wireName, wireDirection, --stepsLeftToTake);
+            return neighbourPort.tracePath(wire, wireDirection, --stepsLeftToTake);
         } else {
             return this;
         }
@@ -69,6 +76,15 @@ class Port {
 
     public void imACrossing() {
         CrossedWires.CROSSINGS.add(this);
+    }
+
+    public void getNumberOfStepsTheWiresTook(String xAndY, Wire wire) {
+        try {
+            CrossedWires.STEPS_TAKEN.put(
+                xAndY, 
+                CrossedWires.STEPS_TO_PORT.get(xAndY) + wire.getSteps()
+            );
+        } catch (Exception e) {}
     }
 
     public int[] getPosition() {
